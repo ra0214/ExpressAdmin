@@ -20,9 +20,6 @@ import { DashboardService, DashboardStats } from '../services/dashboard.service'
           <p>Panel de Administración - EXPRESS Arte</p>
         </div>
         <div class="quick-actions">
-          <button class="btn btn-primary" (click)="crearNuevoProducto()">
-            <i class="fas fa-plus"></i> Nuevo Producto
-          </button>
           <button class="btn btn-secondary" (click)="refreshData()">
             <i class="fas fa-sync-alt"></i> Actualizar
           </button>
