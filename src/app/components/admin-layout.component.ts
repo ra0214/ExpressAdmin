@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './sidebar.component';
 import { FooterComponent } from './footer.component';
+import { NotificationsComponent } from './notifications.component';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, SidebarComponent, FooterComponent],
+  imports: [CommonModule, RouterOutlet, SidebarComponent, FooterComponent, NotificationsComponent],
   template: `
     <div class="admin-layout">
       <app-sidebar></app-sidebar>
@@ -17,6 +18,8 @@ import { FooterComponent } from './footer.component';
           <app-footer></app-footer>
         </div>
       </div>
+      <!-- Componente de notificaciones flotante -->
+      <app-notifications></app-notifications>
     </div>
   `,
   styleUrl: './admin-layout.component.css'

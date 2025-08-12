@@ -189,6 +189,41 @@
   gap: 0.5rem;
 }
 
+/* Estado de conexión WebSocket */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.status-indicator.connected {
+  background: linear-gradient(45deg, #43e97b, #38f9d7);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.disconnected {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+  color: white;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
 .card-content {
   padding: 1.5rem 2rem;
   max-height: 400px;

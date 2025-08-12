@@ -6,6 +6,7 @@ import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { SweetAlertService } from '../services/sweet-alert.service';
 import { DashboardService, DashboardStats } from '../services/dashboard.service';
+import { WebSocketService } from '../services/websocket.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -117,9 +118,15 @@ import { DashboardService, DashboardStats } from '../services/dashboard.service'
         </div>
 
         <!-- Panel de Estado -->
-        <div class="dashboard-card">
+          <div class="dashboard-card">
           <div class="card-header">
             <h3><i class="fas fa-info-circle"></i> Estado del Sistema</h3>
+            <div class="connection-status">
+              <span class="status-indicator" [class.connected]="wsConnected" [class.disconnected]="!wsConnected">
+                <i class="fas" [class.fa-wifi]="wsConnected" [class.fa-exclamation-triangle]="!wsConnected"></i>
+                {{ wsConnected ? 'Conectado' : 'Desconectado' }}
+              </span>
+            </div>
           </div>
           <div class="card-content">
             <div class="alerts-list">
@@ -171,11 +178,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentUser: any = null;
   dashboardStats: DashboardStats | null = null;
   loading = true;
+  wsConnected = false;
+  realtimeUpdates = 0;
 
   constructor(
     private authService: AuthService,
     private sweetAlert: SweetAlertService,
     private dashboardService: DashboardService,
+    private webSocketService: WebSocketService,
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
@@ -185,11 +195,66 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadDashboardData();
+    this.initWebSocket();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.webSocketService.disconnect();
+  }
+
+  private initWebSocket(): void {
+    if (this.isBrowser) {
+      // Conectar WebSocket
+      this.webSocketService.connect();
+
+      // Escuchar estado de conexión
+      this.webSocketService.getConnectionStatus()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(connected => {
+          this.wsConnected = connected;
+          if (connected) {
+            this.sweetAlert.toast('success', 'Conexión en tiempo real establecida');
+          }
+        });
+
+      // Escuchar actualizaciones de estadísticas
+      this.webSocketService.onStatsUpdate()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(stats => {
+          this.dashboardStats = stats;
+          this.realtimeUpdates++;
+          this.sweetAlert.toast('info', 'Estadísticas actualizadas en tiempo real');
+        });
+
+      // Escuchar actualizaciones de productos
+      this.webSocketService.onProductUpdate()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(productData => {
+          this.realtimeUpdates++;
+          this.loadDashboardData(); // Recargar estadísticas
+          this.sweetAlert.toast('info', `Producto ${productData.action || 'actualizado'}`);
+        });
+
+      // Escuchar actualizaciones de usuarios
+      this.webSocketService.onUserUpdate()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(userData => {
+          this.realtimeUpdates++;
+          this.loadDashboardData(); // Recargar estadísticas
+          this.sweetAlert.toast('info', 'Nuevo usuario registrado');
+        });
+
+      // Escuchar actualizaciones de comentarios
+      this.webSocketService.onCommentUpdate()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(commentData => {
+          this.realtimeUpdates++;
+          this.loadDashboardData(); // Recargar estadísticas
+          this.sweetAlert.toast('info', `Comentario ${commentData.action || 'actualizado'}`);
+        });
+    }
   }
 
   loadDashboardData(): void {
