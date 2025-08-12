@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductosService, Producto } from '../services/productos.service';
+import { CategoriasService, Categoria } from '../services/categorias.service';
 import { SweetAlertService } from '../services/sweet-alert.service';
 import { HeaderComponent } from './header.component';
 
@@ -163,14 +164,26 @@ import { HeaderComponent } from './header.component';
             
             <div class="form-group">
               <label for="category">Categoría *</label>
-              <input 
-                type="text" 
+              <select 
                 id="category" 
                 name="category"
                 [(ngModel)]="productoFormData.category" 
                 required
-                placeholder="Categoría del producto"
+                class="categoria-select"
               >
+                <option value="" disabled>Seleccionar categoría</option>
+                <option *ngFor="let categoria of categoriasActivas" [value]="categoria.name">
+                  {{ categoria.name }}
+                </option>
+              </select>
+              <div class="categoria-actions">
+                <button type="button" class="btn-small" (click)="abrirModalCategoria()" title="Agregar nueva categoría">
+                  <i class="fas fa-plus"></i>
+                </button>
+                <button type="button" class="btn-small" (click)="cargarCategorias()" title="Refrescar categorías">
+                  <i class="fas fa-sync"></i>
+                </button>
+              </div>
             </div>
           </div>
           
@@ -192,6 +205,76 @@ import { HeaderComponent } from './header.component';
             <button type="submit" class="btn-guardar" [disabled]="!productoForm.valid || guardando">
               <i class="fas fa-spinner fa-spin" *ngIf="guardando"></i>
               {{ guardando ? 'Guardando...' : (editandoProducto ? 'Actualizar' : 'Crear') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal para crear categoría -->
+    <div class="modal-overlay" *ngIf="mostrarModalCategoria" (click)="cerrarModalCategoria()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Nueva Categoría</h3>
+          <button type="button" class="btn-close" (click)="cerrarModalCategoria()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form #categoriaForm="ngForm" (ngSubmit)="guardarCategoria()">
+          <div class="form-group">
+            <label for="categoria_name">Nombre *</label>
+            <input 
+              type="text" 
+              id="categoria_name" 
+              name="categoria_name"
+              [(ngModel)]="categoriaFormData.name" 
+              required
+              placeholder="Nombre de la categoría"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="categoria_description">Descripción</label>
+            <textarea 
+              id="categoria_description" 
+              name="categoria_description"
+              [(ngModel)]="categoriaFormData.description"
+              rows="3"
+              placeholder="Descripción de la categoría"
+            ></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="categoria_image_url">URL de Imagen</label>
+            <input 
+              type="url" 
+              id="categoria_image_url" 
+              name="categoria_image_url"
+              [(ngModel)]="categoriaFormData.image_url"
+              placeholder="https://ejemplo.com/categoria.jpg"
+            >
+          </div>
+          
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="categoriaFormData.is_active"
+                name="categoria_is_active"
+              >
+              <span class="checkmark"></span>
+              Categoría activa
+            </label>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn-cancelar" (click)="cerrarModalCategoria()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-guardar" [disabled]="!categoriaForm.valid || guardando">
+              <i class="fas fa-spinner fa-spin" *ngIf="guardando"></i>
+              {{ guardando ? 'Creando...' : 'Crear Categoría' }}
             </button>
           </div>
         </form>
@@ -617,20 +700,84 @@ import { HeaderComponent } from './header.component';
         grid-template-columns: 1fr;
       }
     }
+
+    /* Estilos para categorías */
+    .categoria-select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+    }
+
+    .categoria-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .btn-small {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 4px;
+      background: var(--accent-color);
+      color: white;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.3s ease;
+    }
+
+    .btn-small:hover {
+      background: #27ae60;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      margin: 0;
+    }
+
+    .checkmark {
+      font-weight: 500;
+    }
   `]
 })
 export class ProductosComponent implements OnInit {
   productos: Producto[] = [];
   productosFiltrados: Producto[] = [];
+  categorias: Categoria[] = [];
+  categoriasActivas: Categoria[] = [];
   loading = true;
   busqueda = '';
   filtroCategoria = '';
   
   // Modal
   mostrarModal = false;
+  mostrarModalCategoria = false;
   editandoProducto = false;
   guardando = false;
   productoFormData: any = this.resetForm();
+  
+  // Formulario de categoría
+  categoriaFormData = {
+    name: '',
+    description: '',
+    image_url: '',
+    is_active: true
+  };
 
   // Estadísticas
   get productosActivos(): number {
@@ -643,11 +790,13 @@ export class ProductosComponent implements OnInit {
 
   constructor(
     private productosService: ProductosService,
+    private categoriasService: CategoriasService,
     private sweetAlert: SweetAlertService
   ) {}
 
   ngOnInit(): void {
     this.cargarProductos();
+    this.cargarCategorias();
   }
 
   cargarProductos(): void {
@@ -809,5 +958,55 @@ export class ProductosComponent implements OnInit {
     if (target && target.src !== this.getPlaceholderImage()) {
       target.src = this.getPlaceholderImage();
     }
+  }
+
+  // Métodos para categorías
+  cargarCategorias(): void {
+    this.categoriasService.getCategoriasActivas().subscribe({
+      next: (response) => {
+        this.categoriasActivas = response.data;
+        console.log('Categorías cargadas:', this.categoriasActivas);
+      },
+      error: (error) => {
+        console.error('Error al cargar categorías:', error);
+        this.sweetAlert.error('Error', 'No se pudieron cargar las categorías');
+      }
+    });
+  }
+
+  abrirModalCategoria(): void {
+    this.mostrarModalCategoria = true;
+    this.categoriaFormData = {
+      name: '',
+      description: '',
+      image_url: '',
+      is_active: true
+    };
+  }
+
+  cerrarModalCategoria(): void {
+    this.mostrarModalCategoria = false;
+  }
+
+  guardarCategoria(): void {
+    if (!this.categoriaFormData.name.trim()) {
+      this.sweetAlert.warning('Campo requerido', 'El nombre de la categoría es obligatorio');
+      return;
+    }
+
+    this.guardando = true;
+    this.categoriasService.crearCategoria(this.categoriaFormData).subscribe({
+      next: (response) => {
+        this.guardando = false;
+        this.sweetAlert.success('¡Éxito!', 'Categoría creada correctamente');
+        this.cerrarModalCategoria();
+        this.cargarCategorias(); // Recargar categorías
+      },
+      error: (error) => {
+        this.guardando = false;
+        console.error('Error al crear categoría:', error);
+        this.sweetAlert.error('Error', 'No se pudo crear la categoría');
+      }
+    });
   }
 }

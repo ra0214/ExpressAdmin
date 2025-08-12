@@ -54,6 +54,12 @@ import { SweetAlertService } from '../services/sweet-alert.service';
               </a>
             </li>
             <li>
+              <a routerLink="/categorias" routerLinkActive="active">
+                <i class="fas fa-tags"></i>
+                <span>Categorías</span>
+              </a>
+            </li>
+            <li>
               <a routerLink="/usuarios" routerLinkActive="active">
                 <i class="fas fa-users"></i>
                 <span>Usuarios</span>

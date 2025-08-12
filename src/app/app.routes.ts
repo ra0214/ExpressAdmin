@@ -5,6 +5,7 @@ import { ComentariosComponent } from './components/comentarios.component';
 import { ProductosComponent } from './components/productos.component';
 import { UsuariosComponent } from './components/usuarios.component';
 import { EstadisticasComponent } from './components/estadisticas.component';
+import { CategoriasComponent } from './components/categorias.component';
 import { AdminLayoutComponent } from './components/admin-layout.component';
 import { AuthGuard } from './guards/auth.guard';
 
@@ -27,6 +28,10 @@ export const routes: Routes = [
       { 
         path: 'productos', 
         component: ProductosComponent
+      },
+      { 
+        path: 'categorias', 
+        component: CategoriasComponent
       },
       { 
         path: 'usuarios', 
