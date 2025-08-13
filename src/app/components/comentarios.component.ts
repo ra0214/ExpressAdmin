@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ComentariosService, Comentario } from '../services/comentarios.service';
 import { SweetAlertService } from '../services/sweet-alert.service';
 import { ProductosService } from '../services/productos.service';
+import { WebSocketService } from '../services/websocket.service';
 import { HeaderComponent } from './header.component';
 import { forkJoin, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -16,7 +17,13 @@ import { takeUntil } from 'rxjs/operators';
     <app-header></app-header>
     <div class="comentarios-container">
       <div class="header">
-        <h2><i class="fas fa-comments"></i> Gestión de Comentarios</h2>
+        <h2>
+          <i class="fas fa-comments"></i> Gestión de Comentarios
+          <span class="ws-status" [class.connected]="wsConnected" [class.disconnected]="!wsConnected">
+            <i class="fas fa-wifi" *ngIf="wsConnected" title="WebSocket conectado"></i>
+            <i class="fas fa-exclamation-triangle" *ngIf="!wsConnected" title="WebSocket desconectado"></i>
+          </span>
+        </h2>
         <button class="btn-actualizar" (click)="cargarDatos()" [disabled]="loading">
           <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
           {{ loading ? 'Cargando...' : 'Actualizar' }}
@@ -422,20 +429,51 @@ export class ComentariosComponent implements OnInit, OnDestroy {
   promedioCalificacion = 0;
   comentariosRecientes = 0;
   productos: any[] = [];
+  
+  // WebSocket
+  wsConnected = false;
+  private isBrowser: boolean;
 
   constructor(
     private comentariosService: ComentariosService,
     private sweetAlert: SweetAlertService,
-    private productosService: ProductosService
-  ) {}
+    private productosService: ProductosService,
+    private webSocketService: WebSocketService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
   ngOnInit(): void {
     this.cargarDatos();
+    this.initWebSocket();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private initWebSocket(): void {
+    if (this.isBrowser) {
+      // Escuchar estado de conexión
+      this.webSocketService.getConnectionStatus()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(connected => {
+          this.wsConnected = connected;
+          console.log('🔗 WebSocket conectado en Comentarios:', connected);
+        });
+
+      // Escuchar actualizaciones de comentarios
+      this.webSocketService.getMessages()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(message => {
+          if (message.type.includes('comment')) {
+            console.log('📨 Actualización de comentario recibida:', message);
+            this.cargarDatos(); // Recargar comentarios cuando hay cambios
+          }
+        });
+    }
   }
 
   cargarDatos(): void {

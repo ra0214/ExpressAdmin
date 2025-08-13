@@ -409,6 +409,9 @@ export class CategoriasComponent implements OnInit, OnDestroy {
 
     this.guardando = true;
 
+    // Debug: Imprimir los datos que se van a enviar
+    console.log('Datos a enviar:', this.categoriaFormData);
+
     const operacion = this.editandoCategoria 
       ? this.categoriasService.actualizarCategoria(this.getCategoriaEditandoId(), this.categoriaFormData)
       : this.categoriasService.crearCategoria(this.categoriaFormData);
@@ -424,6 +427,8 @@ export class CategoriasComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.guardando = false;
         console.error('Error al guardar categoría:', error);
+        console.error('Datos enviados:', this.categoriaFormData);
+        console.error('Respuesta del servidor:', error.error);
         const mensaje = this.editandoCategoria ? 'actualizar' : 'crear';
         this.sweetAlert.error('Error', `No se pudo ${mensaje} la categoría`);
       }

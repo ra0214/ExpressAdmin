@@ -1,8 +1,11 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { ProductosService, Producto } from '../services/productos.service';
 import { CategoriasService, Categoria } from '../services/categorias.service';
+import { WebSocketService } from '../services/websocket.service';
 import { SweetAlertService } from '../services/sweet-alert.service';
 import { HeaderComponent } from './header.component';
 
@@ -755,7 +758,9 @@ import { HeaderComponent } from './header.component';
     }
   `]
 })
-export class ProductosComponent implements OnInit {
+export class ProductosComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+  private isBrowser: boolean;
   productos: Producto[] = [];
   productosFiltrados: Producto[] = [];
   categorias: Categoria[] = [];
@@ -763,6 +768,9 @@ export class ProductosComponent implements OnInit {
   loading = true;
   busqueda = '';
   filtroCategoria = '';
+  
+  // WebSocket
+  wsConnected = false;
   
   // Modal
   mostrarModal = false;
@@ -791,12 +799,44 @@ export class ProductosComponent implements OnInit {
   constructor(
     private productosService: ProductosService,
     private categoriasService: CategoriasService,
-    private sweetAlert: SweetAlertService
-  ) {}
+    private webSocketService: WebSocketService,
+    private sweetAlert: SweetAlertService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
   ngOnInit(): void {
     this.cargarProductos();
     this.cargarCategorias();
+    this.initWebSocket();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private initWebSocket(): void {
+    if (this.isBrowser) {
+      // Escuchar estado de conexión
+      this.webSocketService.getConnectionStatus()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(connected => {
+          this.wsConnected = connected;
+          console.log('🔗 WebSocket conectado en Productos:', connected);
+        });
+
+      // Escuchar actualizaciones de productos
+      this.webSocketService.getMessages()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(message => {
+          if (message.type.includes('product')) {
+            console.log('📨 Actualización de producto recibida:', message);
+            this.cargarProductos(); // Recargar productos cuando hay cambios
+          }
+        });
+    }
   }
 
   cargarProductos(): void {
