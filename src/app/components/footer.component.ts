@@ -29,10 +29,10 @@ import { CommonModule } from '@angular/common';
         <div class="footer-section">
           <h5>Enlaces Rápidos</h5>
           <ul class="footer-links">
-            <li><a href="#"><i class="fas fa-home"></i> Dashboard</a></li>
-            <li><a href="#"><i class="fas fa-box"></i> Productos</a></li>
-            <li><a href="#"><i class="fas fa-users"></i> Usuarios</a></li>
-            <li><a href="#"><i class="fas fa-comments"></i> Comentarios</a></li>
+            <li><a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="/productos"><i class="fas fa-box"></i> Productos</a></li>
+            <li><a href="/usuarios"><i class="fas fa-users"></i> Usuarios</a></li>
+            <li><a href="/comentarios"><i class="fas fa-comments"></i> Comentarios</a></li>
           </ul>
         </div>
 
