@@ -7,6 +7,7 @@ import { CategoriasService, Categoria, CreateCategoriaRequest, UpdateCategoriaRe
 import { SweetAlertService } from '../services/sweet-alert.service';
 import { WebSocketService } from '../services/websocket.service';
 import { HeaderComponent } from './header.component';
+import { DriveLinkService } from '../services/drive-link.service';
 
 @Component({
   selector: 'app-categorias',
@@ -176,6 +177,94 @@ import { HeaderComponent } from './header.component';
         
         <form #categoriaForm="ngForm" (ngSubmit)="guardarCategoria()">
           <div class="modal-body">
+            <style>
+              .image-url-inputs {
+                display: flex;
+                gap: 10px;
+              }
+              
+              .image-url-inputs input {
+                flex-grow: 1;
+              }
+              
+              .btn-toggle-drive {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 10px;
+                background: #4285f4;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 13px;
+              }
+              
+              .btn-toggle-drive:hover {
+                background: #3367d6;
+              }
+              
+              .drive-picker-wrapper {
+                margin-top: 16px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                overflow: hidden;
+                padding: 16px;
+                background-color: #f8f9fa;
+              }
+              
+              .drive-help-content {
+                color: #444;
+              }
+              
+              .drive-help-content h4 {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 16px;
+                margin-top: 0;
+                margin-bottom: 12px;
+                color: #4285f4;
+              }
+              
+              .drive-help-content p {
+                margin-bottom: 10px;
+                font-size: 14px;
+              }
+              
+              .drive-help-content ol {
+                margin-bottom: 16px;
+                padding-left: 20px;
+              }
+              
+              .drive-help-content ol li {
+                margin-bottom: 8px;
+                font-size: 14px;
+              }
+              
+              .btn-convertir-url {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                margin-top: 10px;
+                padding: 8px 16px;
+                background-color: #4285f4;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+              }
+              
+              .btn-convertir-url:hover {
+                background-color: #3367d6;
+              }
+              
+              .btn-convertir-url:disabled {
+                background-color: #cccccc;
+                cursor: not-allowed;
+              }
+            </style>
             <div class="form-group">
               <label for="name">Nombre *</label>
               <input 
@@ -205,19 +294,6 @@ import { HeaderComponent } from './header.component';
               <small class="help-text">Máximo 500 caracteres</small>
             </div>
             
-            <div class="form-group">
-              <label for="image_url">URL de Imagen</label>
-              <input 
-                type="url" 
-                id="image_url" 
-                name="image_url"
-                [(ngModel)]="categoriaFormData.image_url"
-                placeholder="https://ejemplo.com/categoria.jpg"
-                class="form-input"
-              >
-              <small class="help-text">URL de imagen para representar la categoría</small>
-            </div>
-            
             <div class="form-group checkbox-group">
               <label class="checkbox-label">
                 <input 
@@ -230,19 +306,6 @@ import { HeaderComponent } from './header.component';
                 <span class="checkbox-text">Categoría activa</span>
               </label>
               <small class="help-text">Las categorías inactivas no aparecerán en la tienda</small>
-            </div>
-
-            <!-- Vista previa de imagen -->
-            <div class="preview-group" *ngIf="categoriaFormData.image_url">
-              <label>Vista previa</label>
-              <div class="image-preview">
-                <img 
-                  [src]="categoriaFormData.image_url" 
-                  [alt]="categoriaFormData.name"
-                  (error)="onImageError($event)"
-                  (load)="onImageLoad()"
-                >
-              </div>
             </div>
           </div>
           
@@ -283,11 +346,16 @@ export class CategoriasComponent implements OnInit, OnDestroy {
   editandoCategoria = false;
   guardando = false;
   categoriaFormData: CreateCategoriaRequest = this.resetForm();
+  
+  // Google Drive
+  mostrarDrivePicker = false;
+  driveUrl = '';
 
   constructor(
     private categoriasService: CategoriasService,
     private sweetAlert: SweetAlertService,
     private webSocketService: WebSocketService,
+    private driveLinkService: DriveLinkService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
@@ -513,6 +581,11 @@ export class CategoriasComponent implements OnInit, OnDestroy {
       return this.getPlaceholderImage();
     }
     
+    // Convertir enlaces de Google Drive si es necesario
+    if (imageUrl && this.driveLinkService.isDriveLink(imageUrl)) {
+      return this.driveLinkService.convertDriveLink(imageUrl);
+    }
+    
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
     }
@@ -537,5 +610,36 @@ export class CategoriasComponent implements OnInit, OnDestroy {
 
   onImageLoad(): void {
     // Método para manejar la carga exitosa de imágenes si es necesario
+  }
+
+  // Métodos para Google Drive
+  toggleDrivePicker(): void {
+    this.mostrarDrivePicker = !this.mostrarDrivePicker;
+    // Resetear la URL de Drive al alternar la visibilidad
+    if (this.mostrarDrivePicker) {
+      this.driveUrl = '';
+    }
+  }
+
+  convertirUrlDrive(): void {
+    if (!this.driveUrl) {
+      this.sweetAlert.warning('URL Requerida', 'Por favor ingresa la URL de Google Drive');
+      return;
+    }
+
+    try {
+      // Intentar convertir la URL usando nuestro servicio
+      if (this.driveLinkService.isDriveLink(this.driveUrl)) {
+        const viewableUrl = this.driveLinkService.convertDriveLink(this.driveUrl);
+        this.categoriaFormData.image_url = viewableUrl;
+        this.driveUrl = '';
+        this.sweetAlert.success('¡Éxito!', 'URL de Google Drive convertida correctamente');
+      } else {
+        this.sweetAlert.warning('URL Inválida', 'La URL no parece ser de Google Drive');
+      }
+    } catch (error) {
+      console.error('Error al convertir URL de Drive:', error);
+      this.sweetAlert.error('Error', 'No se pudo convertir la URL de Google Drive');
+    }
   }
 }

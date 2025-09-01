@@ -8,6 +8,7 @@ import { CategoriasService, Categoria } from '../services/categorias.service';
 import { WebSocketService } from '../services/websocket.service';
 import { SweetAlertService } from '../services/sweet-alert.service';
 import { HeaderComponent } from './header.component';
+import { DriveLinkService } from '../services/drive-link.service';
 
 @Component({
   selector: 'app-productos',
@@ -192,13 +193,61 @@ import { HeaderComponent } from './header.component';
           
           <div class="form-group">
             <label for="image_url">URL de Imagen</label>
-            <input 
-              type="url" 
-              id="image_url" 
-              name="image_url"
-              [(ngModel)]="productoFormData.image_url"
-              placeholder="https://ejemplo.com/imagen.jpg"
-            >
+            <div class="image-url-inputs" style="display: flex; gap: 10px;">
+              <input 
+                type="url" 
+                id="image_url" 
+                name="image_url"
+                [(ngModel)]="productoFormData.image_url"
+                placeholder="https://ejemplo.com/imagen.jpg"
+                style="flex-grow: 1;"
+              >
+              <button 
+                type="button" 
+                class="btn-toggle-drive" 
+                (click)="toggleDrivePickerProducto()"
+                style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;"
+              >
+                <i class="fab fa-google-drive"></i>
+                {{ mostrarDrivePickerProducto ? 'Ocultar Drive' : 'Usar Drive' }}
+              </button>
+            </div>
+            <small class="help-text">URL de imagen para el producto o selecciona desde Google Drive</small>
+            
+            <!-- Selector de Google Drive para productos -->
+            <div class="drive-picker-wrapper" *ngIf="mostrarDrivePickerProducto" style="margin-top: 16px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; padding: 16px; background-color: #f8f9fa;">
+              <div class="drive-help-content" style="color: #444;">
+                <h4 style="display: flex; align-items: center; gap: 8px; font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #4285f4;">
+                  <i class="fab fa-google-drive"></i> Usar imagen de Google Drive
+                </h4>
+                <p style="margin-bottom: 10px; font-size: 14px;">Pasos para usar imágenes desde Google Drive:</p>
+                <ol style="margin-bottom: 16px; padding-left: 20px;">
+                  <li style="margin-bottom: 8px; font-size: 14px;">Abre tu archivo de imagen en Google Drive</li>
+                  <li style="margin-bottom: 8px; font-size: 14px;">Haz clic en "Compartir" y configura como "Cualquier persona con el enlace"</li>
+                  <li style="margin-bottom: 8px; font-size: 14px;">Copia el enlace y pégalo a continuación</li>
+                </ol>
+                <div class="form-group" style="margin-bottom: 10px;">
+                  <label for="drive_url_producto">Enlace de Google Drive</label>
+                  <input 
+                    type="text" 
+                    id="drive_url_producto" 
+                    placeholder="https://drive.google.com/file/d/..." 
+                    class="form-input"
+                    [(ngModel)]="driveUrlProducto"
+                    name="drive_url_producto"
+                  >
+                </div>
+                <button 
+                  type="button" 
+                  class="btn-convertir-url" 
+                  (click)="convertirUrlDriveProducto()"
+                  [disabled]="!driveUrlProducto"
+                  style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 16px; background-color: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;"
+                >
+                  <i class="fas fa-link"></i> Convertir URL
+                </button>
+              </div>
+            </div>
           </div>
           
           <div class="modal-actions">
@@ -250,13 +299,61 @@ import { HeaderComponent } from './header.component';
           
           <div class="form-group">
             <label for="categoria_image_url">URL de Imagen</label>
-            <input 
-              type="url" 
-              id="categoria_image_url" 
-              name="categoria_image_url"
-              [(ngModel)]="categoriaFormData.image_url"
-              placeholder="https://ejemplo.com/categoria.jpg"
-            >
+            <div class="image-url-inputs" style="display: flex; gap: 10px;">
+              <input 
+                type="url" 
+                id="categoria_image_url" 
+                name="categoria_image_url"
+                [(ngModel)]="categoriaFormData.image_url"
+                placeholder="https://ejemplo.com/categoria.jpg"
+                style="flex-grow: 1;"
+              >
+              <button 
+                type="button" 
+                class="btn-toggle-drive" 
+                (click)="toggleDrivePickerCategoria()"
+                style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;"
+              >
+                <i class="fab fa-google-drive"></i>
+                {{ mostrarDrivePickerCategoria ? 'Ocultar Drive' : 'Usar Drive' }}
+              </button>
+            </div>
+            <small class="help-text">URL de imagen para la categoría o selecciona desde Google Drive</small>
+            
+            <!-- Selector de Google Drive para categorías -->
+            <div class="drive-picker-wrapper" *ngIf="mostrarDrivePickerCategoria" style="margin-top: 16px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; padding: 16px; background-color: #f8f9fa;">
+              <div class="drive-help-content" style="color: #444;">
+                <h4 style="display: flex; align-items: center; gap: 8px; font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #4285f4;">
+                  <i class="fab fa-google-drive"></i> Usar imagen de Google Drive
+                </h4>
+                <p style="margin-bottom: 10px; font-size: 14px;">Pasos para usar imágenes desde Google Drive:</p>
+                <ol style="margin-bottom: 16px; padding-left: 20px;">
+                  <li style="margin-bottom: 8px; font-size: 14px;">Abre tu archivo de imagen en Google Drive</li>
+                  <li style="margin-bottom: 8px; font-size: 14px;">Haz clic en "Compartir" y configura como "Cualquier persona con el enlace"</li>
+                  <li style="margin-bottom: 8px; font-size: 14px;">Copia el enlace y pégalo a continuación</li>
+                </ol>
+                <div class="form-group" style="margin-bottom: 10px;">
+                  <label for="drive_url_categoria">Enlace de Google Drive</label>
+                  <input 
+                    type="text" 
+                    id="drive_url_categoria" 
+                    placeholder="https://drive.google.com/file/d/..." 
+                    class="form-input"
+                    [(ngModel)]="driveUrlCategoria"
+                    name="drive_url_categoria"
+                  >
+                </div>
+                <button 
+                  type="button" 
+                  class="btn-convertir-url" 
+                  (click)="convertirUrlDriveCategoria()"
+                  [disabled]="!driveUrlCategoria"
+                  style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 16px; background-color: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;"
+                >
+                  <i class="fas fa-link"></i> Convertir URL
+                </button>
+              </div>
+            </div>
           </div>
           
           <div class="form-group checkbox-group">
@@ -779,6 +876,12 @@ export class ProductosComponent implements OnInit, OnDestroy {
   guardando = false;
   productoFormData: any = this.resetForm();
   
+  // Google Drive
+  mostrarDrivePickerProducto = false;
+  mostrarDrivePickerCategoria = false;
+  driveUrlProducto = '';
+  driveUrlCategoria = '';
+  
   // Formulario de categoría
   categoriaFormData = {
     name: '',
@@ -801,6 +904,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     private categoriasService: CategoriasService,
     private webSocketService: WebSocketService,
     private sweetAlert: SweetAlertService,
+    private driveLinkService: DriveLinkService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
@@ -974,6 +1078,11 @@ export class ProductosComponent implements OnInit, OnDestroy {
       return this.getPlaceholderImage();
     }
     
+    // Convertir enlaces de Google Drive si es necesario
+    if (imageUrl && this.driveLinkService.isDriveLink(imageUrl)) {
+      return this.driveLinkService.convertDriveLink(imageUrl);
+    }
+    
     // Si ya es una URL completa, devolverla tal como está
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
@@ -997,6 +1106,65 @@ export class ProductosComponent implements OnInit, OnDestroy {
     const target = event.target as HTMLImageElement;
     if (target && target.src !== this.getPlaceholderImage()) {
       target.src = this.getPlaceholderImage();
+    }
+  }
+  
+  // Métodos para Google Drive
+  toggleDrivePickerProducto(): void {
+    this.mostrarDrivePickerProducto = !this.mostrarDrivePickerProducto;
+    if (this.mostrarDrivePickerProducto) {
+      this.driveUrlProducto = '';
+    }
+  }
+  
+  toggleDrivePickerCategoria(): void {
+    this.mostrarDrivePickerCategoria = !this.mostrarDrivePickerCategoria;
+    if (this.mostrarDrivePickerCategoria) {
+      this.driveUrlCategoria = '';
+    }
+  }
+  
+  convertirUrlDriveProducto(): void {
+    if (!this.driveUrlProducto) {
+      this.sweetAlert.warning('URL Requerida', 'Por favor ingresa la URL de Google Drive');
+      return;
+    }
+
+    try {
+      // Intentar convertir la URL usando nuestro servicio
+      if (this.driveLinkService.isDriveLink(this.driveUrlProducto)) {
+        const viewableUrl = this.driveLinkService.convertDriveLink(this.driveUrlProducto);
+        this.productoFormData.image_url = viewableUrl;
+        this.driveUrlProducto = '';
+        this.sweetAlert.success('¡Éxito!', 'URL de Google Drive convertida correctamente');
+      } else {
+        this.sweetAlert.warning('URL Inválida', 'La URL no parece ser de Google Drive');
+      }
+    } catch (error) {
+      console.error('Error al convertir URL de Drive:', error);
+      this.sweetAlert.error('Error', 'No se pudo convertir la URL de Google Drive');
+    }
+  }
+  
+  convertirUrlDriveCategoria(): void {
+    if (!this.driveUrlCategoria) {
+      this.sweetAlert.warning('URL Requerida', 'Por favor ingresa la URL de Google Drive');
+      return;
+    }
+
+    try {
+      // Intentar convertir la URL usando nuestro servicio
+      if (this.driveLinkService.isDriveLink(this.driveUrlCategoria)) {
+        const viewableUrl = this.driveLinkService.convertDriveLink(this.driveUrlCategoria);
+        this.categoriaFormData.image_url = viewableUrl;
+        this.driveUrlCategoria = '';
+        this.sweetAlert.success('¡Éxito!', 'URL de Google Drive convertida correctamente');
+      } else {
+        this.sweetAlert.warning('URL Inválida', 'La URL no parece ser de Google Drive');
+      }
+    } catch (error) {
+      console.error('Error al convertir URL de Drive:', error);
+      this.sweetAlert.error('Error', 'No se pudo convertir la URL de Google Drive');
     }
   }
 
